@@ -1,0 +1,98 @@
+version: "3.8"
+
+networks:
+  lara:
+    name: lara
+
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx.dockerfile
+    ports:
+      - 80:80
+      - 433:433
+    depends_on:
+      - php
+      - mysql
+      - redis
+    networks:
+      - lara
+
+  php:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    networks:
+      - lara
+
+  mysql:
+    image: mysql:5.7.32
+    ports:
+      - 4306:3306
+    volumes:
+      - ./mysql:/var/lib/mysql
+    networks:
+      - lara
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: abbas
+      MYSQL_ROOT_PASSWORD: abbas
+
+  composer:
+    image: composer:latest
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    networks:
+      - lara
+
+  artisan:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    entrypoint: ["php", "artisan"]
+    networks:
+      - lara
+
+  npm:
+    image: node:current-alpine
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    entrypoint: ["npm"]
+    networks:
+      - lara
+
+  phpunit:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    entrypoint: ["/var/www/html/vendor/bin/phpunit"]
+    networks:
+      - lara
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    networks:
+      - lara
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: php.dockerfile
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    entrypoint: ["php", "artisan", "schedule:work"]
+    networks:
+      - lara
